@@ -57,7 +57,7 @@
             border-radius: 4px;
             background-color: #ddd; 
             line-height: 0;
-            overflow: hidden; /* Importante para bordes limpios */
+            overflow: hidden; 
         }
 
         canvas { display: block; cursor: grab; touch-action: none; }
@@ -146,9 +146,8 @@
         // --- CONFIGURACIÓN ---
         const FILAS = 8;
         const COLUMNAS = 8;
-        // ¡IMPORTANTE! Asegúrate que esta ruta sea correcta
-        const RUTA_IMAGEN = 'foto.jpg'; 
-        const MARGEN_ERROR = 25; 
+        const RUTA_IMAGEN = 'foto.jpg'; // Asegúrate que la imagen existe
+        const MARGEN_ERROR = 35; // Aumentado para facilitar el encaje
         
         let img = new Image();
         let piezas = [];
@@ -167,7 +166,6 @@
         img.src = RUTA_IMAGEN;
 
         img.onload = function() {
-            // Ajustar canvas al ancho de pantalla pero respetando proporción
             const maxWidth = Math.min(800, window.innerWidth - 40);
             escalaGlobal = maxWidth / img.width;
             
@@ -180,7 +178,6 @@
             anchoPiezaImg = img.width / COLUMNAS;
             altoPiezaImg = img.height / FILAS;
 
-            // Tamaño de pestaña más pronunciado (25% en lugar de 20%)
             tamanoPestana = Math.min(anchoPiezaCanvas, altoPiezaCanvas) * 0.25;
 
             inicializarJuego();
@@ -190,7 +187,6 @@
             piezas = [];
             let formas = [];
 
-            // Generar formas (Macho/Hembra)
             for(let i=0; i<FILAS; i++) {
                 formas[i] = [];
                 for(let j=0; j<COLUMNAS; j++) {
@@ -213,7 +209,6 @@
                 }
             }
 
-            // Crear Piezas
             for(let i=0; i<FILAS; i++) {
                 for(let j=0; j<COLUMNAS; j++) {
                     piezas.push({
@@ -221,7 +216,6 @@
                         imgY: i * altoPiezaImg,
                         xCorrecta: j * anchoPiezaCanvas,
                         yCorrecta: i * altoPiezaCanvas,
-                        // Posición inicial aleatoria pero dentro del canvas visible
                         x: Math.random() * (canvas.width - anchoPiezaCanvas),
                         y: Math.random() * (canvas.height - altoPiezaCanvas),
                         forma: formas[i][j],
@@ -232,7 +226,7 @@
             dibujarEscena();
         }
 
-        // --- LÓGICA DE DIBUJO DE FORMA (Suavizada) ---
+        // --- DIBUJAR FORMA (Curvas Bezier) ---
         function trazarPieza(ctx, x, y, w, h, forma) {
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -244,7 +238,6 @@
         }
 
         function curva(ctx, x1, y1, x2, y2, tipo) {
-            // Curvas Bezier mejoradas para evitar picos extraños y llenar bien los huecos
             const cx = (x1 + x2) / 2;
             const cy = (y1 + y2) / 2;
             const s = tipo * tamanoPestana; 
@@ -265,7 +258,6 @@
         function dibujarEscena() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Fondo guía muy tenue
             ctx.save();
             ctx.globalAlpha = 0.15;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -275,7 +267,6 @@
                 if(p !== piezaSeleccionada) dibujarPieza(p);
             });
 
-            // La seleccionada siempre encima con sombra
             if(piezaSeleccionada) {
                 ctx.shadowColor = "rgba(0,0,0,0.5)";
                 ctx.shadowBlur = 15;
@@ -288,52 +279,45 @@
             }
         }
 
-        // --- CORRECCIÓN AVANZADA DE RENDERIZADO (SOLUCIÓN) ---
+        // --- CORRECCIÓN DEFINITIVA DE PESTAÑAS BLANCAS ---
         function dibujarPieza(p) {
             ctx.save();
-            
-            // 1. TRASLACIÓN: Movemos el origen al punto (0,0) de la pieza
             ctx.translate(p.x, p.y);
 
-            // 2. RECORTE (Clip): Dibujamos la forma desde (0,0)
+            // 1. Recorte (Shape)
             trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.clip();
 
-            // 3. IMAGEN CON SANGRADO (BLEED):
-            // Calculamos un margen extra para asegurar que la textura cubra las "orejas"
-            const margen = tamanoPestana * 2.5; 
-            const margenImg = margen / escalaGlobal;
+            // 2. Imagen con Sangrado MASIVO (Bleed)
+            // Aquí está el arreglo: Tomamos un margen gigante (50% del ancho de la pieza)
+            // para garantizar que siempre haya imagen debajo de las pestañas.
+            const margenSeguridad = Math.max(anchoPiezaCanvas, altoPiezaCanvas) * 0.5;
+            const margenImg = margenSeguridad / escalaGlobal;
 
-            // Coordenadas origen (en la imagen JPG original)
-            // Retrocedemos el margen para capturar textura extra
+            // Coordenadas Source (Imagen Original)
             let sx = p.imgX - margenImg;
             let sy = p.imgY - margenImg;
             let sw = anchoPiezaImg + (margenImg * 2);
             let sh = altoPiezaImg + (margenImg * 2);
 
-            // Coordenadas destino (en el canvas, relativo a 0,0)
-            // Dibujamos hacia atrás (negativo) para alinear
-            let dx = -margen;
-            let dy = -margen;
-            let dw = sw * escalaGlobal;
-            let dh = sh * escalaGlobal;
+            // Coordenadas Destination (Canvas relativo a la pieza)
+            // Dibujamos hacia atrás (negativo) lo mismo que ampliamos en el source
+            let dx = -margenSeguridad;
+            let dy = -margenSeguridad;
+            let dw = anchoPiezaCanvas + (margenSeguridad * 2);
+            let dh = altoPiezaCanvas + (margenSeguridad * 2);
 
             ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
-            // 4. BORDES Y ESTILOS
-            // Restauramos el path para dibujar el borde encima
+            // 3. Bordes
             trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
-            
             ctx.lineWidth = 1.5;
             if (p.bloqueada) {
-                // Muy sutil si ya está en su sitio
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
                 ctx.stroke();
             } else {
-                // Borde blanco y sombra interior simulada para piezas sueltas
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
                 ctx.stroke();
-                // Sombra interior sutil
                 ctx.shadowColor = "rgba(0,0,0,0.2)";
                 ctx.shadowBlur = 2;
                 ctx.stroke();
@@ -343,7 +327,7 @@
             ctx.restore();
         }
 
-        // --- FUNCIONES DE JUEGO (Timer y Lógica) ---
+        // --- FUNCIONES DE JUEGO ---
         function empezarTimer() {
             if(!running) {
                 running = true;
@@ -378,7 +362,6 @@
             
             if(encajadas === totalPiezas) {
                 detenerTimer();
-                // Dibujar imagen final limpia
                 ctx.clearRect(0,0,canvas.width, canvas.height);
                 ctx.drawImage(img, 0,0, canvas.width, canvas.height);
                 winOverlay.style.display = 'flex';
@@ -434,7 +417,7 @@
             }
         };
 
-        // Soporte Táctil (Móvil)
+        // Soporte Táctil
         canvas.addEventListener('touchstart', function(e) {
             e.preventDefault();
             const touch = e.touches[0];
