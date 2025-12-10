@@ -148,7 +148,7 @@
         const COLUMNAS = 8;
         // ¡IMPORTANTE! Asegúrate que esta ruta sea correcta
         const RUTA_IMAGEN = 'foto.jpg'; 
-        const MARGEN_ERROR = 25; // Aumentado ligeramente para facilitar
+        const MARGEN_ERROR = 25; 
         
         let img = new Image();
         let piezas = [];
@@ -156,7 +156,7 @@
         let anchoPiezaImg, altoPiezaImg;
         let piezaSeleccionada = null;
         let tamanoPestana;
-        let escalaGlobal; // Variable clave para arreglar la imagen
+        let escalaGlobal; 
         
         // Variables Timer
         let startTime = 0;
@@ -232,7 +232,7 @@
             dibujarEscena();
         }
 
-        // --- NUEVA LÓGICA DE DIBUJO DE FORMA (Estilo Puzzle Clásico) ---
+        // --- LÓGICA DE DIBUJO DE FORMA (Suavizada) ---
         function trazarPieza(ctx, x, y, w, h, forma) {
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -244,21 +244,20 @@
         }
 
         function curva(ctx, x1, y1, x2, y2, tipo) {
-            // Esta función crea una forma de pieza más "orgánica" y clásica
+            // Curvas Bezier mejoradas para evitar picos extraños y llenar bien los huecos
             const cx = (x1 + x2) / 2;
             const cy = (y1 + y2) / 2;
             const s = tipo * tamanoPestana; 
             
-            // Puntos de control para curvas Bezier más suaves (cuello estrecho, cabeza ancha)
             if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) { // Horizontal
                 const tercio = (x2 - x1) / 3;
-                ctx.bezierCurveTo(x1 + tercio, y1 + s * 0.2, cx - s, y1 + s * 0.2, cx - s * 0.5, y1 + s);
-                ctx.bezierCurveTo(cx + s * 0.5, y1 + s, cx + s, y2 + s * 0.2, x2 - tercio, y2 + s * 0.2);
+                ctx.bezierCurveTo(x1 + tercio, y1 + s * 0.1, cx - s*1.2, y1 + s * 0.1, cx - s * 0.3, y1 + s);
+                ctx.bezierCurveTo(cx + s * 0.3, y1 + s, cx + s*1.2, y2 + s * 0.1, x2 - tercio, y2 + s * 0.1);
                 ctx.lineTo(x2, y2);
             } else { // Vertical
                 const tercio = (y2 - y1) / 3;
-                ctx.bezierCurveTo(x1 + s * 0.2, y1 + tercio, x1 + s * 0.2, cy - s, x1 + s, cy - s * 0.5);
-                ctx.bezierCurveTo(x1 + s, cy + s * 0.5, x2 + s * 0.2, cy + s, x2 + s * 0.2, y2 - tercio);
+                ctx.bezierCurveTo(x1 + s * 0.1, y1 + tercio, x1 + s * 0.1, cy - s*1.2, x1 + s, cy - s * 0.3);
+                ctx.bezierCurveTo(x1 + s, cy + s * 0.3, x2 + s * 0.1, cy + s*1.2, x2 + s * 0.1, y2 - tercio);
                 ctx.lineTo(x2, y2);
             }
         }
@@ -272,15 +271,12 @@
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             ctx.restore();
 
-            // Dibujar primero las no bloqueadas para que las encajadas queden "al fondo" visualmente
-            // O al revés, depende de tu gusto. Aquí dibujamos todas.
             piezas.forEach(p => {
                 if(p !== piezaSeleccionada) dibujarPieza(p);
             });
 
-            // La seleccionada siempre encima
+            // La seleccionada siempre encima con sombra
             if(piezaSeleccionada) {
-                // Sombra para efecto de elevación
                 ctx.shadowColor = "rgba(0,0,0,0.5)";
                 ctx.shadowBlur = 15;
                 ctx.shadowOffsetX = 5;
@@ -292,63 +288,62 @@
             }
         }
 
-        // --- CORRECCIÓN DEFINITIVA DE MAPEO DE IMAGEN ---
+        // --- CORRECCIÓN AVANZADA DE RENDERIZADO (SOLUCIÓN) ---
         function dibujarPieza(p) {
             ctx.save();
             
-            // 1. Crear el camino de recorte (la forma del puzzle)
-            trazarPieza(ctx, p.x, p.y, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
+            // 1. TRASLACIÓN: Movemos el origen al punto (0,0) de la pieza
+            ctx.translate(p.x, p.y);
+
+            // 2. RECORTE (Clip): Dibujamos la forma desde (0,0)
+            trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.clip();
 
-            // 2. Dibujar la imagen
-            // TRUCO MATEMÁTICO: En lugar de calcular recortes, calculamos dónde estaría 
-            // la imagen completa si esta pieza estuviera en su lugar correcto, y luego 
-            // la movemos según dónde está la pieza ahora.
-            
-            // Calculamos la posición donde iría la imagen relativa a la pieza
-            const imgGlobalX = p.x - (p.imgX * escalaGlobal);
-            const imgGlobalY = p.y - (p.imgY * escalaGlobal);
+            // 3. IMAGEN CON SANGRADO (BLEED):
+            // Calculamos un margen extra para asegurar que la textura cubra las "orejas"
+            const margen = tamanoPestana * 2.5; 
+            const margenImg = margen / escalaGlobal;
 
-            // Dibujamos la imagen completa (el clip se encarga de mostrar solo lo necesario)
-            // Usamos un pequeño margen de seguridad en el recorte origen para optimizar rendimiento
-            // pero manteniendo la alineación perfecta de la escala global.
-            const margenSeguridad = tamanoPestana * 4; // Margen amplio para cubrir las curvas
-            
-            // Coordenadas en la imagen original
-            const sx = Math.max(0, p.imgX - (margenSeguridad / escalaGlobal));
-            const sy = Math.max(0, p.imgY - (margenSeguridad / escalaGlobal));
-            const sw = Math.min(img.width - sx, anchoPiezaImg + (margenSeguridad * 2 / escalaGlobal));
-            const sh = Math.min(img.height - sy, altoPiezaImg + (margenSeguridad * 2 / escalaGlobal));
+            // Coordenadas origen (en la imagen JPG original)
+            // Retrocedemos el margen para capturar textura extra
+            let sx = p.imgX - margenImg;
+            let sy = p.imgY - margenImg;
+            let sw = anchoPiezaImg + (margenImg * 2);
+            let sh = altoPiezaImg + (margenImg * 2);
 
-            // Coordenadas en el canvas
-            const dx = p.x - (p.imgX * escalaGlobal) + (sx * escalaGlobal);
-            const dy = p.y - (p.imgY * escalaGlobal) + (sy * escalaGlobal);
-            const dw = sw * escalaGlobal;
-            const dh = sh * escalaGlobal;
+            // Coordenadas destino (en el canvas, relativo a 0,0)
+            // Dibujamos hacia atrás (negativo) para alinear
+            let dx = -margen;
+            let dy = -margen;
+            let dw = sw * escalaGlobal;
+            let dh = sh * escalaGlobal;
 
             ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 
-            ctx.restore();
-
-            // 3. Dibujar borde (Stroke)
-            ctx.save();
-            trazarPieza(ctx, p.x, p.y, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
-            ctx.lineWidth = 2; // Borde un poco más grueso se ve mejor
+            // 4. BORDES Y ESTILOS
+            // Restauramos el path para dibujar el borde encima
+            trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             
+            ctx.lineWidth = 1.5;
             if (p.bloqueada) {
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Muy sutil si está encajada
+                // Muy sutil si ya está en su sitio
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
                 ctx.stroke();
             } else {
-                ctx.strokeStyle = "#fff"; // Blanco sólido
+                // Borde blanco y sombra interior simulada para piezas sueltas
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
                 ctx.stroke();
-                ctx.strokeStyle = "rgba(0,0,0,0.2)"; // Borde interior oscuro sutil
-                ctx.lineWidth = 1;
+                // Sombra interior sutil
+                ctx.shadowColor = "rgba(0,0,0,0.2)";
+                ctx.shadowBlur = 2;
                 ctx.stroke();
+                ctx.shadowColor = "transparent";
             }
+
             ctx.restore();
         }
 
-        // --- FUNCIONES DE JUEGO (Igual que antes) ---
+        // --- FUNCIONES DE JUEGO (Timer y Lógica) ---
         function empezarTimer() {
             if(!running) {
                 running = true;
@@ -397,7 +392,6 @@
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
 
-            // Recorremos al revés para agarrar primero la que esté "arriba"
             for(let i=piezas.length-1; i>=0; i--) {
                 let p = piezas[i];
                 if(!p.bloqueada && 
@@ -408,7 +402,6 @@
                     piezaSeleccionada.offX = mx - p.x;
                     piezaSeleccionada.offY = my - p.y;
                     
-                    // Mover al final del array para que se dibuje última (encima)
                     piezas.splice(i, 1);
                     piezas.push(p);
                     
@@ -434,7 +427,6 @@
                     piezaSeleccionada.x = piezaSeleccionada.xCorrecta;
                     piezaSeleccionada.y = piezaSeleccionada.yCorrecta;
                     piezaSeleccionada.bloqueada = true;
-                    // Efecto de sonido (opcional) o visual
                 }
                 piezaSeleccionada = null;
                 dibujarEscena();
