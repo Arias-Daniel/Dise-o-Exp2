@@ -146,8 +146,8 @@
         // --- CONFIGURACIÓN ---
         const FILAS = 8;
         const COLUMNAS = 8;
-        const RUTA_IMAGEN = 'foto.jpg'; // Asegúrate que la imagen existe
-        const MARGEN_ERROR = 35; // Aumentado para facilitar el encaje
+        const RUTA_IMAGEN = 'foto.jpg'; 
+        const MARGEN_ERROR = 35; 
         
         let img = new Image();
         let piezas = [];
@@ -178,6 +178,7 @@
             anchoPiezaImg = img.width / COLUMNAS;
             altoPiezaImg = img.height / FILAS;
 
+            // Tamaño de la pestaña (la oreja)
             tamanoPestana = Math.min(anchoPiezaCanvas, altoPiezaCanvas) * 0.25;
 
             inicializarJuego();
@@ -187,6 +188,7 @@
             piezas = [];
             let formas = [];
 
+            // Generar formas coincidentes
             for(let i=0; i<FILAS; i++) {
                 formas[i] = [];
                 for(let j=0; j<COLUMNAS; j++) {
@@ -226,33 +228,65 @@
             dibujarEscena();
         }
 
-        // --- DIBUJAR FORMA (Curvas Bezier) ---
+        // --- NUEVA LÓGICA GEOMÉTRICA (SOLUCIÓN A LOS HUECOS) ---
+        // Usamos vectores normalizados para garantizar que la curva sea idéntica
+        // sin importar si se dibuja de arriba-abajo o abajo-arriba.
+        
         function trazarPieza(ctx, x, y, w, h, forma) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            forma.top !== 0 ? curva(ctx, x, y, x+w, y, forma.top) : ctx.lineTo(x+w, y);
-            forma.right !== 0 ? curva(ctx, x+w, y, x+w, y+h, forma.right) : ctx.lineTo(x+w, y+h);
-            forma.bottom !== 0 ? curva(ctx, x+w, y+h, x, y+h, forma.bottom) : ctx.lineTo(x, y+h);
-            forma.left !== 0 ? curva(ctx, x, y+h, x, y, forma.left) : ctx.lineTo(x, y);
+            // Top (Izq -> Der)
+            dibujarLadoVectorial(ctx, x, y, x + w, y, forma.top);
+            // Right (Arr -> Aba)
+            dibujarLadoVectorial(ctx, x + w, y, x + w, y + h, forma.right);
+            // Bottom (Der -> Izq)
+            dibujarLadoVectorial(ctx, x + w, y + h, x, y + h, forma.bottom);
+            // Left (Aba -> Arr)
+            dibujarLadoVectorial(ctx, x, y + h, x, y, forma.left);
             ctx.closePath();
         }
 
-        function curva(ctx, x1, y1, x2, y2, tipo) {
-            const cx = (x1 + x2) / 2;
-            const cy = (y1 + y2) / 2;
-            const s = tipo * tamanoPestana; 
-            
-            if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) { // Horizontal
-                const tercio = (x2 - x1) / 3;
-                ctx.bezierCurveTo(x1 + tercio, y1 + s * 0.1, cx - s*1.2, y1 + s * 0.1, cx - s * 0.3, y1 + s);
-                ctx.bezierCurveTo(cx + s * 0.3, y1 + s, cx + s*1.2, y2 + s * 0.1, x2 - tercio, y2 + s * 0.1);
+        function dibujarLadoVectorial(ctx, x1, y1, x2, y2, tipo) {
+            if (tipo === 0) {
                 ctx.lineTo(x2, y2);
-            } else { // Vertical
-                const tercio = (y2 - y1) / 3;
-                ctx.bezierCurveTo(x1 + s * 0.1, y1 + tercio, x1 + s * 0.1, cy - s*1.2, x1 + s, cy - s * 0.3);
-                ctx.bezierCurveTo(x1 + s, cy + s * 0.3, x2 + s * 0.1, cy + s*1.2, x2 + s * 0.1, y2 - tercio);
-                ctx.lineTo(x2, y2);
+                return;
             }
+
+            // Cálculo vectorial para rotación perfecta
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy);
+
+            // Vector Normal (90 grados hacia afuera del sentido de las agujas del reloj)
+            // Esto apunta "hacia afuera" de la pieza.
+            const nx = dy / len;
+            const ny = -dx / len;
+
+            const s = tipo * tamanoPestana; 
+
+            // Puntos de control basados en porcentajes del lado
+            // Esto crea una forma de "Oreja" estándar simétrica
+            
+            // Curva 1: Salida del cuello
+            ctx.bezierCurveTo(
+                x1 + dx * 0.2 + nx * s * 0.2, y1 + dy * 0.2 + ny * s * 0.2,
+                x1 + dx * 0.2 + nx * s * 1.0, y1 + dy * 0.2 + ny * s * 1.0,
+                x1 + dx * 0.35 + nx * s * 1.0, y1 + dy * 0.35 + ny * s * 1.0
+            );
+
+            // Curva 2: Cabeza de la pestaña
+            ctx.bezierCurveTo(
+                x1 + dx * 0.45 + nx * s * 1.0, y1 + dy * 0.45 + ny * s * 1.0,
+                x1 + dx * 0.55 + nx * s * 1.0, y1 + dy * 0.55 + ny * s * 1.0,
+                x1 + dx * 0.65 + nx * s * 1.0, y1 + dy * 0.65 + ny * s * 1.0
+            );
+
+            // Curva 3: Regreso del cuello
+            ctx.bezierCurveTo(
+                x1 + dx * 0.8 + nx * s * 1.0, y1 + dy * 0.8 + ny * s * 1.0,
+                x1 + dx * 0.8 + nx * s * 0.2, y1 + dy * 0.8 + ny * s * 0.2,
+                x2, y2
+            );
         }
 
         function dibujarEscena() {
@@ -279,7 +313,7 @@
             }
         }
 
-        // --- CORRECCIÓN DEFINITIVA DE PESTAÑAS BLANCAS ---
+        // --- RENDERIZADO AVANZADO ---
         function dibujarPieza(p) {
             ctx.save();
             ctx.translate(p.x, p.y);
@@ -288,20 +322,16 @@
             trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.clip();
 
-            // 2. Imagen con Sangrado MASIVO (Bleed)
-            // Aquí está el arreglo: Tomamos un margen gigante (50% del ancho de la pieza)
-            // para garantizar que siempre haya imagen debajo de las pestañas.
+            // 2. Imagen con Sangrado (Bleed)
+            // Un sangrado grande asegura que la imagen cubra toda la pestaña
             const margenSeguridad = Math.max(anchoPiezaCanvas, altoPiezaCanvas) * 0.5;
             const margenImg = margenSeguridad / escalaGlobal;
 
-            // Coordenadas Source (Imagen Original)
             let sx = p.imgX - margenImg;
             let sy = p.imgY - margenImg;
             let sw = anchoPiezaImg + (margenImg * 2);
             let sh = altoPiezaImg + (margenImg * 2);
 
-            // Coordenadas Destination (Canvas relativo a la pieza)
-            // Dibujamos hacia atrás (negativo) lo mismo que ampliamos en el source
             let dx = -margenSeguridad;
             let dy = -margenSeguridad;
             let dw = anchoPiezaCanvas + (margenSeguridad * 2);
