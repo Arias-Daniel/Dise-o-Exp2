@@ -4,40 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puzzle - Diseño de Experimentos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --bg-color: #eef2f3;
+            /* Colores ajustados para el tema marino */
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            --primary-text: #2d3436;
+            --accent-color: #00cec9; /* Cian brillante */
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Poppins', sans-serif;
+            /* Fondo Marino Degradado */
+            background: linear-gradient(to bottom, #00b4db, #0083b0);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background: var(--bg-color);
-            color: #333;
-            user-select: none;
+            color: var(--primary-text);
             padding: 20px;
+            box-sizing: border-box;
+            overflow-x: hidden; /* Evitar scroll horizontal por las burbujas */
+            position: relative;
         }
 
-        header { margin-bottom: 20px; text-align: center; }
-        h1 { margin: 0; color: var(--primary-color); }
+        /* --- BURBUJAS ANIMADAS --- */
+        .bubbles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Para que queden detrás de todo */
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: rise 10s infinite ease-in;
+        }
+
+        /* Animación de subida y oscilación */
+        @keyframes rise {
+            0% {
+                bottom: -100px;
+                transform: translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(30px);
+            }
+            100% {
+                bottom: 120%; /* Sube hasta salirse de la pantalla */
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+        }
+
+        /* Variaciones para cada burbuja (tamaño, posición, retraso) */
+        .bubble:nth-child(1) { left: 10%; width: 40px; height: 40px; animation-duration: 8s; animation-delay: 0s; }
+        .bubble:nth-child(2) { left: 20%; width: 20px; height: 20px; animation-duration: 5s; animation-delay: 2s; }
+        .bubble:nth-child(3) { left: 35%; width: 50px; height: 50px; animation-duration: 10s; animation-delay: 4s; }
+        .bubble:nth-child(4) { left: 50%; width: 30px; height: 30px; animation-duration: 7s; animation-delay: 1s; }
+        .bubble:nth-child(5) { left: 65%; width: 25px; height: 25px; animation-duration: 6s; animation-delay: 3s; }
+        .bubble:nth-child(6) { left: 80%; width: 45px; height: 45px; animation-duration: 9s; animation-delay: 2s; }
+        .bubble:nth-child(7) { left: 90%; width: 35px; height: 35px; animation-duration: 8s; animation-delay: 5s; }
+        .bubble:nth-child(8) { left: 15%; width: 15px; height: 15px; animation-duration: 12s; animation-delay: 6s; }
+        .bubble:nth-child(9) { left: 70%; width: 10px; height: 10px; animation-duration: 4s; animation-delay: 1s; }
+        .bubble:nth-child(10){ left: 40%; width: 60px; height: 60px; animation-duration: 15s; animation-delay: 0.5s; }
+
+
+        /* --- HEADER --- */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--glass-bg);
+            padding: 15px 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            margin: 0;
+            /* Texto azul oceánico */
+            color: #0984e3; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #636e72;
+            font-weight: 600;
+            margin-top: 5px;
+        }
 
         /* --- DASHBOARD --- */
         .dashboard {
             display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            background: white;
-            padding: 10px 30px;
-            border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            gap: 50px;
+            margin-bottom: 25px;
+            padding: 15px 50px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9); /* Un poco más opaco para contraste */
+            backdrop-filter: blur(12px);
+            border: var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard:hover {
+            transform: translateY(-2px);
         }
 
         .stat-item {
@@ -46,29 +139,85 @@
             align-items: center;
         }
 
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 1px; }
-        .stat-value { font-family: 'Roboto Mono', monospace; font-size: 1.4rem; color: var(--primary-color); font-weight: bold; }
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #7f8c8d;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.8rem;
+            color: #2d3436;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 2px;
+            background: #dfe6e9;
+            border-radius: 2px;
+        }
 
         /* --- JUEGO --- */
         #game-container {
             position: relative;
+            border-radius: 15px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            border: 8px solid #fff;
-            border-radius: 4px;
-            background-color: #ddd; 
+            background-color: rgba(255,255,255,0.3); 
             line-height: 0;
-            overflow: hidden; 
+            overflow: hidden;
+            border: 6px solid rgba(255, 255, 255, 0.6);
+            transition: box-shadow 0.3s ease;
         }
 
-        canvas { display: block; cursor: grab; touch-action: none; }
+        canvas {
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }
         canvas:active { cursor: grabbing; }
 
-        /* --- MENSAJE VICTORIA --- */
+        /* --- FOOTER --- */
+        footer {
+            margin-top: 40px;
+            padding: 20px 40px;
+            text-align: center;
+            background: var(--glass-bg);
+            border-radius: 15px;
+            border: var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .authors-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #636e72;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .authors-names {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #2d3436;
+        }
+        
+        .separator {
+            margin: 0 10px;
+            color: var(--accent-color);
+        }
+
+        /* --- PANTALLA VICTORIA --- */
         #win-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             z-index: 100;
             justify-content: center;
@@ -77,35 +226,56 @@
 
         .win-card {
             background: white;
-            padding: 40px;
-            border-radius: 20px;
+            padding: 50px;
+            border-radius: 25px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            border-top: 8px solid var(--success-color);
-            animation: slideUp 0.4s ease-out;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            max-width: 90%;
+            width: 350px;
         }
 
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .btn-restart {
-            margin-top: 20px;
-            padding: 12px 30px;
-            background: var(--accent-color);
+            margin-top: 25px;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #00cec9, #0984e3);
             color: white;
             border: none;
-            border-radius: 25px;
+            border-radius: 50px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: 0.2s;
+            box-shadow: 0 10px 20px rgba(0, 206, 201, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .btn-restart:hover { background: #2980b9; transform: scale(1.05); }
+        .btn-restart:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(0, 206, 201, 0.4);
+        }
 
     </style>
 </head>
 <body>
 
+    <div class="bubbles-container">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
     <header>
         <h1>Experimento de Armado</h1>
+        <div class="subtitle">Materia: Diseño de Experimentos</div>
     </header>
 
     <div class="dashboard">
@@ -113,7 +283,7 @@
             <span class="stat-label">Tiempo</span>
             <span class="stat-value" id="timer">00:00.00</span>
         </div>
-        <div style="width: 1px; background: #ddd; margin: 0 10px;"></div>
+        <div class="divider"></div>
         <div class="stat-item">
             <span class="stat-label">Piezas</span>
             <span class="stat-value" id="progress">0 / 64</span>
@@ -124,11 +294,19 @@
         <canvas id="miCanvas"></canvas>
     </div>
 
+    <footer>
+        <div class="authors-label">Presentado por:</div>
+        <div class="authors-names">
+            Daniel Enrique Arias Montero <span class="separator">|</span> Abraham José Gómez Sarmiento
+        </div>
+    </footer>
+
     <div id="win-overlay">
         <div class="win-card">
-            <h2 style="color: var(--success-color); margin:0;">¡Excelente!</h2>
-            <p>Has completado el experimento.</p>
-            <div style="background: #f4f4f4; padding: 10px; border-radius: 8px; margin: 15px 0;">
+            <h2 style="margin:0; font-family:'Montserrat'; color:#00b894; font-size:2.5rem;">¡Excelente!</h2>
+            <p style="color: #636e72; margin-top: 10px;">Experimento completado.</p>
+            <div style="background: #f1f2f6; padding: 15px; border-radius: 12px; margin: 25px 0;">
+                <span class="stat-label">Tiempo Final</span><br>
                 <span class="stat-value" id="final-time">00:00.00</span>
             </div>
             <button class="btn-restart" onclick="location.reload()">Nuevo Intento</button>
@@ -146,6 +324,7 @@
         // --- CONFIGURACIÓN ---
         const FILAS = 8;
         const COLUMNAS = 8;
+        // ¡IMPORTANTE! Asegúrate que esta ruta sea correcta
         const RUTA_IMAGEN = 'foto.jpg'; 
         const MARGEN_ERROR = 35; 
         
@@ -166,7 +345,8 @@
         img.src = RUTA_IMAGEN;
 
         img.onload = function() {
-            const maxWidth = Math.min(800, window.innerWidth - 40);
+            // Ajuste responsivo un poco más grande
+            const maxWidth = Math.min(950, window.innerWidth - 40);
             escalaGlobal = maxWidth / img.width;
             
             canvas.width = maxWidth;
@@ -178,7 +358,6 @@
             anchoPiezaImg = img.width / COLUMNAS;
             altoPiezaImg = img.height / FILAS;
 
-            // Tamaño de la pestaña (la oreja)
             tamanoPestana = Math.min(anchoPiezaCanvas, altoPiezaCanvas) * 0.25;
 
             inicializarJuego();
@@ -188,7 +367,6 @@
             piezas = [];
             let formas = [];
 
-            // Generar formas coincidentes
             for(let i=0; i<FILAS; i++) {
                 formas[i] = [];
                 for(let j=0; j<COLUMNAS; j++) {
@@ -228,10 +406,7 @@
             dibujarEscena();
         }
 
-        // --- NUEVA LÓGICA GEOMÉTRICA (SOLUCIÓN A LOS HUECOS) ---
-        // Usamos vectores normalizados para garantizar que la curva sea idéntica
-        // sin importar si se dibuja de arriba-abajo o abajo-arriba.
-        
+        // --- FORMA CLÁSICA DE PUZZLE ---
         function trazarPieza(ctx, x, y, w, h, forma) {
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -252,46 +427,41 @@
                 return;
             }
 
-            // Cálculo vectorial para rotación perfecta
             const dx = x2 - x1;
             const dy = y2 - y1;
             const len = Math.hypot(dx, dy);
-
-            // Vector Normal (90 grados hacia afuera del sentido de las agujas del reloj)
-            // Esto apunta "hacia afuera" de la pieza.
             const nx = dy / len;
             const ny = -dx / len;
-
             const s = tipo * tamanoPestana; 
 
-            // Puntos de control basados en porcentajes del lado
-            // Esto crea una forma de "Oreja" estándar simétrica
-            
-            // Curva 1: Salida del cuello
+            const xBase1 = x1 + dx * 0.34;
+            const yBase1 = y1 + dy * 0.34;
+            const xBase2 = x1 + dx * 0.66;
+            const yBase2 = y1 + dy * 0.66;
+            const cx = x1 + dx * 0.5;
+            const cy = y1 + dy * 0.5;
+
+            ctx.lineTo(xBase1, yBase1);
+
             ctx.bezierCurveTo(
-                x1 + dx * 0.2 + nx * s * 0.2, y1 + dy * 0.2 + ny * s * 0.2,
-                x1 + dx * 0.2 + nx * s * 1.0, y1 + dy * 0.2 + ny * s * 1.0,
-                x1 + dx * 0.35 + nx * s * 1.0, y1 + dy * 0.35 + ny * s * 1.0
+                xBase1 + nx * s * 0.2, yBase1 + ny * s * 0.2, 
+                xBase1 + nx * s * 1.0, yBase1 + ny * s * 1.0, 
+                cx + nx * s * 1.0, cy + ny * s * 1.0 
             );
 
-            // Curva 2: Cabeza de la pestaña
             ctx.bezierCurveTo(
-                x1 + dx * 0.45 + nx * s * 1.0, y1 + dy * 0.45 + ny * s * 1.0,
-                x1 + dx * 0.55 + nx * s * 1.0, y1 + dy * 0.55 + ny * s * 1.0,
-                x1 + dx * 0.65 + nx * s * 1.0, y1 + dy * 0.65 + ny * s * 1.0
+                xBase2 + nx * s * 1.0, yBase2 + ny * s * 1.0, 
+                xBase2 + nx * s * 0.2, yBase2 + ny * s * 0.2, 
+                xBase2, yBase2 
             );
 
-            // Curva 3: Regreso del cuello
-            ctx.bezierCurveTo(
-                x1 + dx * 0.8 + nx * s * 1.0, y1 + dy * 0.8 + ny * s * 1.0,
-                x1 + dx * 0.8 + nx * s * 0.2, y1 + dy * 0.8 + ny * s * 0.2,
-                x2, y2
-            );
+            ctx.lineTo(x2, y2);
         }
 
         function dibujarEscena() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Fondo guía (fantasma)
             ctx.save();
             ctx.globalAlpha = 0.15;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -302,10 +472,10 @@
             });
 
             if(piezaSeleccionada) {
-                ctx.shadowColor = "rgba(0,0,0,0.5)";
-                ctx.shadowBlur = 15;
-                ctx.shadowOffsetX = 5;
-                ctx.shadowOffsetY = 5;
+                ctx.shadowColor = "rgba(0,0,0,0.4)";
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 10;
+                ctx.shadowOffsetY = 10;
                 dibujarPieza(piezaSeleccionada);
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetX = 0;
@@ -313,17 +483,16 @@
             }
         }
 
-        // --- RENDERIZADO AVANZADO ---
+        // --- RENDERIZADO CON SANGRADO ---
         function dibujarPieza(p) {
             ctx.save();
             ctx.translate(p.x, p.y);
 
-            // 1. Recorte (Shape)
+            // 1. Recorte
             trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.clip();
 
-            // 2. Imagen con Sangrado (Bleed)
-            // Un sangrado grande asegura que la imagen cubra toda la pestaña
+            // 2. Imagen con Sangrado
             const margenSeguridad = Math.max(anchoPiezaCanvas, altoPiezaCanvas) * 0.5;
             const margenImg = margenSeguridad / escalaGlobal;
 
@@ -343,10 +512,10 @@
             trazarPieza(ctx, 0, 0, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.lineWidth = 1.5;
             if (p.bloqueada) {
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"; 
                 ctx.stroke();
             } else {
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; 
                 ctx.stroke();
                 ctx.shadowColor = "rgba(0,0,0,0.2)";
                 ctx.shadowBlur = 2;
