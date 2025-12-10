@@ -26,14 +26,10 @@
             padding: 20px;
         }
 
-        header {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
+        header { margin-bottom: 20px; text-align: center; }
         h1 { margin: 0; color: var(--primary-color); }
 
-        /* --- DASHBOARD (CRONÓMETRO) --- */
+        /* --- DASHBOARD --- */
         .dashboard {
             display: flex;
             gap: 20px;
@@ -149,7 +145,8 @@
         // --- CONFIGURACIÓN ---
         const FILAS = 8;
         const COLUMNAS = 8;
-        const RUTA_IMAGEN = 'foto.jpg'; // Tu imagen aquí
+        // Asegúrate de poner aquí tu imagen real
+        const RUTA_IMAGEN = 'foto.jpg'; 
         const MARGEN_ERROR = 20; 
         
         let img = new Image();
@@ -168,14 +165,12 @@
         img.src = RUTA_IMAGEN;
 
         img.onload = function() {
-            // 1. Calcular el tamaño del canvas para que quepa en pantalla
             const maxWidth = Math.min(800, window.innerWidth - 40);
             const scale = maxWidth / img.width;
             
             canvas.width = maxWidth;
             canvas.height = img.height * scale;
 
-            // 2. Definir tamaños exactos
             anchoPiezaCanvas = canvas.width / COLUMNAS;
             altoPiezaCanvas = canvas.height / FILAS;
             
@@ -219,11 +214,11 @@
             for(let i=0; i<FILAS; i++) {
                 for(let j=0; j<COLUMNAS; j++) {
                     piezas.push({
-                        imgX: j * anchoPiezaImg, // Posición exacta en imagen original
+                        imgX: j * anchoPiezaImg,
                         imgY: i * altoPiezaImg,
-                        xCorrecta: j * anchoPiezaCanvas, // Posición donde debe ir en canvas
+                        xCorrecta: j * anchoPiezaCanvas,
                         yCorrecta: i * altoPiezaCanvas,
-                        x: Math.random() * (canvas.width - anchoPiezaCanvas), // Posición aleatoria actual
+                        x: Math.random() * (canvas.width - anchoPiezaCanvas),
                         y: Math.random() * (canvas.height - altoPiezaCanvas),
                         forma: formas[i][j],
                         bloqueada: false
@@ -233,17 +228,12 @@
             dibujarEscena();
         }
 
-        // --- RENDERIZADO (CORREGIDO PARA EVITAR HUECOS) ---
         function trazarPieza(ctx, x, y, w, h, forma) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            // Top
             forma.top !== 0 ? curva(ctx, x, y, x+w, y, forma.top) : ctx.lineTo(x+w, y);
-            // Right
             forma.right !== 0 ? curva(ctx, x+w, y, x+w, y+h, forma.right) : ctx.lineTo(x+w, y+h);
-            // Bottom
             forma.bottom !== 0 ? curva(ctx, x+w, y+h, x, y+h, forma.bottom) : ctx.lineTo(x, y+h);
-            // Left
             forma.left !== 0 ? curva(ctx, x, y+h, x, y, forma.left) : ctx.lineTo(x, y);
             ctx.closePath();
         }
@@ -255,7 +245,6 @@
             const cy = (y1 + y2) / 2;
             const s = tipo * tamanoPestana; 
 
-            // Curvas Bezier suaves
             if (Math.abs(w) > Math.abs(h)) { // Horizontal
                 ctx.bezierCurveTo(x1 + w*0.4, y1, x1 + w*0.4, y1 + s, cx, y1 + s);
                 ctx.bezierCurveTo(x2 - w*0.4, y2 + s, x2 - w*0.4, y2, x2, y2);
@@ -268,18 +257,15 @@
         function dibujarEscena() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Guía tenue de fondo
             ctx.save();
             ctx.globalAlpha = 0.1;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             ctx.restore();
 
-            // Dibujar piezas no seleccionadas
             piezas.forEach(p => {
                 if(p !== piezaSeleccionada) dibujarPieza(p);
             });
 
-            // Dibujar pieza seleccionada al final (arriba)
             if(piezaSeleccionada) {
                 ctx.shadowColor = "rgba(0,0,0,0.5)";
                 ctx.shadowBlur = 10;
@@ -288,46 +274,53 @@
             }
         }
 
+        // --- CORRECCIÓN CLAVE AQUÍ ---
         function dibujarPieza(p) {
             ctx.save();
             
-            // 1. Crear el camino de recorte (shape) en la posición actual del canvas
+            // 1. Recorte (Shape)
             trazarPieza(ctx, p.x, p.y, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
             ctx.clip();
 
-            // 2. Calcular factores de escala para mapear imagen -> canvas
-            // El truco para evitar huecos: expandir el área de dibujo de la imagen un poco más allá de los bordes lógicos
-            const factorExpansion = 0.4; // 40% extra para cubrir pestañas
+            // 2. Mapeo de Textura Preciso
+            // Calculamos cuánto se debe expandir la imagen basándonos en el tamaño real de la pestaña
+            // en lugar de un porcentaje arbitrario.
             
-            const imgW_extra = anchoPiezaImg * (1 + factorExpansion);
-            const imgH_extra = altoPiezaImg * (1 + factorExpansion);
-            
-            const canvasW_extra = anchoPiezaCanvas * (1 + factorExpansion);
-            const canvasH_extra = altoPiezaCanvas * (1 + factorExpansion);
+            // Factor de escala entre la imagen original y el canvas
+            const ratioX = anchoPiezaImg / anchoPiezaCanvas;
+            const ratioY = altoPiezaImg / altoPiezaCanvas;
 
-            const offsetImgX = anchoPiezaImg * (factorExpansion / 2);
-            const offsetImgY = altoPiezaImg * (factorExpansion / 2);
-            const offsetCanvasX = anchoPiezaCanvas * (factorExpansion / 2);
-            const offsetCanvasY = altoPiezaCanvas * (factorExpansion / 2);
+            // Margen en píxeles del canvas (pestaña + un pequeño extra de seguridad)
+            const margenCanvas = tamanoPestana + 2;
+            
+            // Margen equivalente en la imagen original
+            const margenImgX = margenCanvas * ratioX;
+            const margenImgY = margenCanvas * ratioY;
 
             ctx.drawImage(
                 img, 
-                p.imgX - offsetImgX, p.imgY - offsetImgY, // Origen en imagen (con margen extra)
-                imgW_extra, imgH_extra,                   // Ancho/Alto en imagen
-                p.x - offsetCanvasX, p.y - offsetCanvasY, // Destino en canvas (con margen extra)
-                canvasW_extra, canvasH_extra              // Ancho/Alto en canvas
+                // Coordenadas Origen (Imagen) - Restamos el margen exacto
+                p.imgX - margenImgX, 
+                p.imgY - margenImgY, 
+                anchoPiezaImg + (margenImgX * 2), 
+                altoPiezaImg + (margenImgY * 2),
+                
+                // Coordenadas Destino (Canvas) - Restamos el margen exacto
+                p.x - margenCanvas, 
+                p.y - margenCanvas, 
+                anchoPiezaCanvas + (margenCanvas * 2), 
+                altoPiezaCanvas + (margenCanvas * 2)
             );
 
             ctx.restore();
 
-            // 3. Dibujar borde
+            // 3. Borde
             ctx.save();
             trazarPieza(ctx, p.x, p.y, anchoPiezaCanvas, altoPiezaCanvas, p.forma);
-            ctx.strokeStyle = p.bloqueada ? "transparent" : "#fff"; // Sin borde si está encajada
+            ctx.strokeStyle = p.bloqueada ? "transparent" : "#fff";
             ctx.lineWidth = 1;
             ctx.stroke();
             
-            // Pequeño borde negro para contraste
             if(!p.bloqueada) {
                 ctx.strokeStyle = "rgba(0,0,0,0.2)";
                 ctx.stroke();
@@ -335,8 +328,7 @@
             ctx.restore();
         }
 
-        // --- LÓGICA DE JUEGO Y CRONÓMETRO ---
-
+        // --- FUNCIONES DE JUEGO ---
         function empezarTimer() {
             if(!running) {
                 running = true;
@@ -371,7 +363,6 @@
             
             if(encajadas === totalPiezas) {
                 detenerTimer();
-                // Dibujar imagen completa limpia
                 ctx.clearRect(0,0,canvas.width, canvas.height);
                 ctx.drawImage(img, 0,0, canvas.width, canvas.height);
                 winOverlay.style.display = 'flex';
@@ -380,8 +371,7 @@
 
         // Eventos Mouse
         canvas.onmousedown = function(e) {
-            empezarTimer(); // Inicia al primer clic
-            
+            empezarTimer();
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
@@ -392,7 +382,6 @@
                     piezaSeleccionada = p;
                     piezaSeleccionada.offX = mx - p.x;
                     piezaSeleccionada.offY = my - p.y;
-                    // Traer al frente
                     piezas.splice(i, 1);
                     piezas.push(p);
                     dibujarEscena();
@@ -417,8 +406,6 @@
                     piezaSeleccionada.x = piezaSeleccionada.xCorrecta;
                     piezaSeleccionada.y = piezaSeleccionada.yCorrecta;
                     piezaSeleccionada.bloqueada = true;
-                    // Mover al fondo (opcional, para que las sueltas queden arriba)
-                    // pero visualmente está bien así
                 }
                 piezaSeleccionada = null;
                 dibujarEscena();
@@ -426,22 +413,18 @@
             }
         };
 
-        // Soporte Táctil (Móviles)
+        // Soporte Táctil
         canvas.addEventListener('touchstart', function(e) {
             e.preventDefault();
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX, clientY: touch.clientY
-            });
+            const mouseEvent = new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY });
             canvas.dispatchEvent(mouseEvent);
         }, {passive: false});
 
         canvas.addEventListener('touchmove', function(e) {
             e.preventDefault();
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX, clientY: touch.clientY
-            });
+            const mouseEvent = new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY });
             canvas.dispatchEvent(mouseEvent);
         }, {passive: false});
 
